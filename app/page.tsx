@@ -21,6 +21,7 @@
 ];
 
 export default function Home() {
+ 
 
   const [formulario, setFormulario] = useState({
     nombre: "",
@@ -29,18 +30,42 @@ export default function Home() {
     hora: "",
   });
   const [enviado, setEnviado] = useState(false);
-
+  const [enviando, setEnviando] = useState(false);
+  const [ultimaReserva, setUltimaReserva] = useState({
+    nombre: "",
+    servicio: "",
+    fecha: "",
+    hora: "",
+  });
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setFormulario({ ...formulario, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Reserva enviada:", formulario);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setEnviando(true);
+
+  try {
+    const res = await fetch("/api/reservar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formulario),
+    });
+
+    if (!res.ok) throw new Error("Error al enviar la reserva");
+
     setEnviado(true);
-  };
+    setFormulario({ nombre: "", servicio: "", fecha: "", hora: "" });
+ 
+  } catch (error) {
+    console.error(error);
+    alert("Hubo un problema al enviar tu reserva. Intenta de nuevo.");
+  } finally {
+    setEnviando(false);
+  }
+};
 
 
   return (
@@ -91,12 +116,18 @@ export default function Home() {
         {enviado ? (
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
             <p className="text-emerald-800 font-semibold text-lg">
-              ¡Gracias, {formulario.nombre}!
+              ¡Gracias, {ultimaReserva.nombre}!
             </p>
             <p className="text-emerald-700 mt-2">
-              Tu cita para {formulario.servicio} el {formulario.fecha} a las{" "}
-              {formulario.hora} ha sido registrada.
+              Tu cita para {ultimaReserva.servicio} el {ultimaReserva.fecha} a las{" "}
+              {ultimaReserva.hora} ha sido registrada.
             </p>
+            <button
+              onClick={() => setEnviado(false)}
+              className="mt-6 text-emerald-700 font-semibold underline hover:text-emerald-900"
+            >
+              Hacer otra reserva
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -164,9 +195,10 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition"
+              disabled={enviando}
+              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
             >
-              Confirmar Reserva
+              {enviando ? "Enviando..." : "Confirmar Reserva"}
             </button>
           </form>
         )}
